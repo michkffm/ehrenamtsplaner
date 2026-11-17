@@ -13,6 +13,7 @@ Gemeinsame Aufgaben für Vereine und ehrenamtliche Teams. Eine Expo-Anwendung mi
 - Kennzeichnung überfälliger und heute fälliger Aufgaben anhand des lokalen Kalendertags; erledigte Aufgaben werden nicht als überfällig markiert
 - Sichtbare Tastaturfokussierung, umbrechende Kopfzeilen und Schaltflächen für schmale Ansichten
 - Verständliche Meldungen bei veralteten Aufgabenständen und ungültigen Einladungen; Speicherfehler erscheinen direkt im Aufgabenformular
+- Bestätigungen nach Speichern, Übernehmen und Statuswechseln. Falls die Änderung gespeichert wurde, aber das Neuladen scheitert, weist die App ausdrücklich darauf hin; die Schreibaktion wird nicht automatisch wiederholt.
 - Getrennte Vereinsdaten durch Datenbank-Zugriffsregeln (Row Level Security)
 - Gleichzeitige Änderungen werden anhand einer Versionsnummer abgesichert
 

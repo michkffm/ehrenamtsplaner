@@ -6,6 +6,7 @@ import { loadGroups, loadTasks, rpc, saveTask } from '../lib/api';
 import { errorText, type Group, type Task, type TaskDraft, type TaskStatus } from '../lib/models';
 import { client } from '../lib/supabase';
 import { filterTasks, localDateKey, taskDeadline } from '../lib/taskOverview';
+import { performTaskAction, taskActionMessages, type TaskAction } from '../lib/taskActions';
 
 const labels: Record<TaskStatus, string> = { open: 'Offen', claimed: 'Übernommen', done: 'Erledigt' };
 
@@ -18,6 +19,7 @@ export function Dashboard({ userId }: { userId: string }) {
   const [loadedGroup, setLoadedGroup] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [invite, setInvite] = useState('');
@@ -68,22 +70,30 @@ export function Dashboard({ userId }: { userId: string }) {
 
   async function run(action: () => Promise<void>) {
     if (busy) return;
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setFeedback('');
     try { await action(); } catch (e) { setError(errorText(e)); }
     finally { setBusy(false); }
   }
   async function submitTask(draft: TaskDraft) {
     await run(async () => {
       const current = editor && editor !== 'new' ? editor : undefined;
-      await saveTask(groupId, draft, current?.id, current?.version);
-      setEditor(null);
-      await refreshTasks();
+      const result = await performTaskAction(async () => {
+        await saveTask(groupId, draft, current?.id, current?.version);
+        setEditor(null);
+      }, refreshTasks);
+      showTaskResult(result, current ? 'Deine Änderungen wurden gespeichert.' : 'Die neue Aufgabe wurde erstellt.');
     });
   }
-  function act(task: Task, action: 'claim' | 'release' | 'complete' | 'reopen') {
+  function showTaskResult(result: 'refreshed' | 'refresh_failed', message: string) {
+    setFeedback(message);
+    if (result === 'refresh_failed') setError('Die Änderung ist gespeichert, aber die Aufgabenübersicht konnte nicht aktualisiert werden. Bitte aktualisiere die Übersicht; die Aktion muss nicht wiederholt werden.');
+  }
+  function act(task: Task, action: TaskAction) {
     void run(async () => {
-      await rpc('change_task', { p_id: task.id, p_action: action, p_version: task.version });
-      await refreshTasks();
+      const result = await performTaskAction(async () => {
+        await rpc('change_task', { p_id: task.id, p_action: action, p_version: task.version });
+      }, refreshTasks);
+      showTaskResult(result, taskActionMessages[action]);
     });
   }
   const visible = filterTasks(tasks, { status: filter, query, mineOnly, userId });
@@ -95,10 +105,11 @@ export function Dashboard({ userId }: { userId: string }) {
         const { error: signOutError } = await client().auth.signOut(); if (signOutError) throw signOutError;
       })} /></View>
     <Notice message={editor ? '' : error} error />
+    <Notice message={feedback} />
     {loadingGroups ? <ActivityIndicator accessibilityLabel="Vereine werden geladen" color={colors.green} /> : <>
       {groups.length > 0 ? <View style={ui.card}><Text style={ui.heading}>Dein Vereinsbereich</Text><View style={ui.row}>
         {groups.map((g) => <Button key={g.id} label={g.name} secondary selected={groupId === g.id} disabled={busy || loadingTasks} onPress={() => {
-          if (g.id !== groupId) { setTasks([]); setInvite(''); setEditor(null); resetFilters(); setGroupId(g.id); }
+          if (g.id !== groupId) { setTasks([]); setInvite(''); setEditor(null); setError(''); setFeedback(''); resetFilters(); setGroupId(g.id); }
         }} />)}
         <Button label="Aktualisieren" secondary disabled={busy || loadingTasks} onPress={() => void run(async () => { await refreshGroups(); await refreshTasks(); })} />
       </View></View> : <View style={ui.card}><Text style={ui.heading}>Willkommen im Ehrenamtsplaner</Text>
@@ -108,7 +119,7 @@ export function Dashboard({ userId }: { userId: string }) {
       {group ? <>
         <View style={ui.row}><View style={ui.rowHeading}><Text style={ui.heading}>{group.name}</Text>
           <Text style={ui.body}>{tasks.filter((t) => t.status === 'open').length} offene · {tasks.filter((t) => t.status === 'done').length} erledigte Aufgaben</Text></View>
-          <Button label="+ Neue Aufgabe" disabled={busy || loadingTasks} onPress={() => { setError(''); setEditor('new'); }} /></View>
+          <Button label="+ Neue Aufgabe" disabled={busy || loadingTasks} onPress={() => { setError(''); setFeedback(''); setEditor('new'); }} /></View>
         {group.owner_id === userId ? <View style={ui.card}><View style={ui.row}>
           <Text style={ui.body}>Lade weitere Helfende ein.</Text>
           <Button label="Einladungscode anzeigen" secondary disabled={busy} onPress={() => void run(async () => {
@@ -146,7 +157,7 @@ export function Dashboard({ userId }: { userId: string }) {
                   <Button label="Aufgabe freigeben" secondary disabled={busy} onPress={() => act(task, 'release')} /></> : null}
                 {task.status === 'done' && (task.assigned_to === userId || group.owner_id === userId) ?
                   <Button label="Wieder öffnen" secondary disabled={busy} onPress={() => act(task, 'reopen')} /> : null}
-                {(task.created_by === userId || group.owner_id === userId) ? <Button label="Bearbeiten" secondary disabled={busy} onPress={() => { setError(''); setEditor(task); }} /> : null}
+                {(task.created_by === userId || group.owner_id === userId) ? <Button label="Bearbeiten" secondary disabled={busy} onPress={() => { setError(''); setFeedback(''); setEditor(task); }} /> : null}
               </View>
             </View>; })}
       </> : null}
