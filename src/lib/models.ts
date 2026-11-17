@@ -15,7 +15,7 @@ export function validateDraft(draft: TaskDraft): string | null {
   if (draft.due_date) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.due_date)) return 'Bitte ein Datum im Format JJJJ-MM-TT eingeben.';
     const date = new Date(`${draft.due_date}T12:00:00Z`);
-    if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== draft.due_date) {
+    if (!Number.isFinite(date.getTime()) || date.getUTCFullYear() < 1 || date.toISOString().slice(0, 10) !== draft.due_date) {
       return 'Bitte ein gültiges Datum eingeben.';
     }
   }
@@ -48,9 +48,17 @@ export function parseGroups(value: unknown): Group[] {
 
 export function errorText(error: unknown): string {
   const code = error && typeof error === 'object' && 'code' in error ? error.code : '';
+  const message = error && typeof error === 'object' && 'message' in error ? error.message : '';
   if (code === 'invalid_credentials') return 'E-Mail-Adresse oder Passwort stimmen nicht.';
   if (code === 'email_not_confirmed') return 'Bitte zuerst die E-Mail-Adresse bestätigen.';
   if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit') return 'Zu viele Versuche. Bitte später erneut versuchen.';
-  if (code === 'P0001') return 'Die Aktion ist nicht möglich. Bitte aktualisieren und Berechtigung oder Einladungscode prüfen.';
+  if (code === 'P0001') {
+    if (message === 'invalid_invitation') return 'Der Einladungscode ist ungültig. Bitte frage deinen Verein nach dem aktuellen Code.';
+    if (message === 'conflict_or_not_allowed') return 'Die Aufgabe wurde inzwischen geändert oder dein Zugriff hat sich geändert. Bitte aktualisiere die Aufgabenübersicht, bevor du es erneut versuchst.';
+    if (message === 'invalid_transition') return 'Die Aufgabe kann in ihrem aktuellen Status nicht so geändert werden. Bitte aktualisiere die Aufgabenübersicht.';
+    if (message === 'not_allowed') return 'Für diese Aktion fehlt dir die Berechtigung.';
+    if (message === 'invalid_request') return 'Bitte prüfe deine Eingaben und ob du noch Mitglied des Vereins bist.';
+    return 'Die Aktion ist nicht möglich. Bitte aktualisieren und Berechtigung oder Einladungscode prüfen.';
+  }
   return 'Die Anfrage ist fehlgeschlagen. Bitte Verbindung prüfen und erneut versuchen.';
 }

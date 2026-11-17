@@ -3,8 +3,8 @@ import { Text, View } from 'react-native';
 import { Button, Field, Notice, ui } from './ui';
 import { validateDraft, type Task, type TaskDraft } from '../lib/models';
 
-export function TaskEditor({ task, busy, onSave, onCancel }: {
-  task?: Task; busy: boolean; onSave: (draft: TaskDraft) => Promise<void>; onCancel: () => void;
+export function TaskEditor({ task, busy, serverError, onSave, onCancel }: {
+  task?: Task; busy: boolean; serverError: string; onSave: (draft: TaskDraft) => Promise<void>; onCancel: () => void;
 }) {
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
@@ -21,7 +21,7 @@ export function TaskEditor({ task, busy, onSave, onCancel }: {
     <Field label="Titel" value={title} onChangeText={setTitle} maxLength={120} editable={!busy} />
     <Field label="Beschreibung (optional)" value={description} onChangeText={setDescription} multiline maxLength={2000} editable={!busy} />
     <Field label="Termin (optional, JJJJ-MM-TT)" value={due} onChangeText={setDue} autoCapitalize="none" maxLength={10} editable={!busy} />
-    <Notice message={error} error />
+    <Notice message={error || serverError} error />
     <View style={ui.row}><Button label={busy ? 'Wird gespeichert …' : 'Aufgabe speichern'} disabled={busy} onPress={() => void submit()} />
       <Button label="Abbrechen" secondary disabled={busy} onPress={onCancel} /></View>
   </View>;
