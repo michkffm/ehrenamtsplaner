@@ -9,6 +9,8 @@ Gemeinsame Aufgaben für Vereine und ehrenamtliche Teams. Eine Expo-Anwendung mi
 - Aufgaben mit Beschreibung und optionalem Termin erstellen und bearbeiten
 - Aufgaben übernehmen, freigeben, erledigen und wieder öffnen
 - Filter nach Bearbeitungsstand und manuelles Aktualisieren gemeinsamer Daten
+- Suche in Titel und Beschreibung, kombinierbar mit Status und „Meine Aufgaben“ (selbst übernommene Aufgaben)
+- Kennzeichnung überfälliger und heute fälliger Aufgaben anhand des lokalen Kalendertags; erledigte Aufgaben werden nicht als überfällig markiert
 - Getrennte Vereinsdaten durch Datenbank-Zugriffsregeln (Row Level Security)
 - Gleichzeitige Änderungen werden anhand einer Versionsnummer abgesichert
 

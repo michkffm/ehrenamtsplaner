@@ -5,6 +5,7 @@ import { TaskEditor } from '../components/TaskEditor';
 import { loadGroups, loadTasks, rpc, saveTask } from '../lib/api';
 import { errorText, type Group, type Task, type TaskDraft, type TaskStatus } from '../lib/models';
 import { client } from '../lib/supabase';
+import { filterTasks, localDateKey, taskDeadline } from '../lib/taskOverview';
 
 const labels: Record<TaskStatus, string> = { open: 'Offen', claimed: 'Übernommen', done: 'Erledigt' };
 
@@ -21,6 +22,9 @@ export function Dashboard({ userId }: { userId: string }) {
   const [code, setCode] = useState('');
   const [invite, setInvite] = useState('');
   const [filter, setFilter] = useState<'all' | TaskStatus>('all');
+  const [query, setQuery] = useState('');
+  const [mineOnly, setMineOnly] = useState(false);
+  const [today, setToday] = useState(() => localDateKey(new Date()));
   const [editor, setEditor] = useState<Task | 'new' | null>(null);
   const request = useRef(0);
   const group = groups.find((g) => g.id === groupId);
@@ -29,8 +33,13 @@ export function Dashboard({ userId }: { userId: string }) {
   const refreshGroups = useCallback(async (preferred?: string) => {
     const result = await loadGroups();
     setGroups(result);
-    if (preferred) { setEditor(null); setInvite(''); setFilter('all'); setTasks([]); }
+    if (preferred) { setEditor(null); setInvite(''); setFilter('all'); setQuery(''); setMineOnly(false); setTasks([]); }
     setGroupId((current) => preferred ?? (result.some((g) => g.id === current) ? current : result[0]?.id ?? ''));
+  }, []);
+  useEffect(() => {
+    // Keep deadline labels current when the app remains open across midnight.
+    const timer = setInterval(() => setToday(localDateKey(new Date())), 60_000);
+    return () => clearInterval(timer);
   }, []);
   useEffect(() => {
     let active = true;
@@ -77,7 +86,8 @@ export function Dashboard({ userId }: { userId: string }) {
       await refreshTasks();
     });
   }
-  const visible = tasks.filter((t) => filter === 'all' || t.status === filter);
+  const visible = filterTasks(tasks, { status: filter, query, mineOnly, userId });
+  function resetFilters() { setFilter('all'); setQuery(''); setMineOnly(false); }
   return <>
     <View style={ui.row}><View style={{ flex: 1 }}><Text style={ui.eyebrow}>DEIN ENGAGEMENT ZÄHLT</Text>
       <Text style={ui.title}>Zusammen wird mehr daraus.</Text></View>
@@ -88,7 +98,7 @@ export function Dashboard({ userId }: { userId: string }) {
     {loadingGroups ? <ActivityIndicator accessibilityLabel="Vereine werden geladen" color={colors.green} /> : <>
       {groups.length > 0 ? <View style={ui.card}><Text style={ui.heading}>Dein Vereinsbereich</Text><View style={ui.row}>
         {groups.map((g) => <Button key={g.id} label={g.name} secondary selected={groupId === g.id} disabled={busy || loadingTasks} onPress={() => {
-          if (g.id !== groupId) { setTasks([]); setInvite(''); setEditor(null); setFilter('all'); setGroupId(g.id); }
+          if (g.id !== groupId) { setTasks([]); setInvite(''); setEditor(null); resetFilters(); setGroupId(g.id); }
         }} />)}
         <Button label="Aktualisieren" secondary disabled={busy || loadingTasks} onPress={() => void run(async () => { await refreshGroups(); await refreshTasks(); })} />
       </View></View> : <View style={ui.card}><Text style={ui.heading}>Willkommen im Ehrenamtsplaner</Text>
@@ -107,16 +117,28 @@ export function Dashboard({ userId }: { userId: string }) {
           })} /></View>{invite ? <Text selectable style={ui.body}>Vertraulich weitergeben: {invite}</Text> : null}</View> : null}
         {editor ? <TaskEditor key={editor === 'new' ? 'new' : editor.id} task={editor === 'new' ? undefined : editor} busy={busy}
           onSave={submitTask} onCancel={() => setEditor(null)} /> : null}
-        <View style={ui.row}>{(['all', 'open', 'claimed', 'done'] as const).map((status) =>
-          <Button key={status} label={status === 'all' ? 'Alle Aufgaben' : labels[status]} secondary selected={filter === status} onPress={() => setFilter(status)} />)}</View>
+        <View style={ui.card}>
+          <Field label="Aufgaben durchsuchen" placeholder="Titel oder Beschreibung" value={query} onChangeText={setQuery} autoCorrect={false} returnKeyType="search" />
+          <View style={ui.row}>{(['all', 'open', 'claimed', 'done'] as const).map((status) =>
+            <Button key={status} label={status === 'all' ? 'Alle Status' : labels[status]} secondary selected={filter === status} onPress={() => setFilter(status)} />)}</View>
+          <View style={ui.row}>
+            <Button label="Meine Aufgaben" secondary selected={mineOnly} onPress={() => setMineOnly(!mineOnly)} />
+            {filter !== 'all' || query || mineOnly ? <Button label="Filter zurücksetzen" secondary onPress={resetFilters} /> : null}
+          </View>
+          <Text style={ui.body}>„Meine Aufgaben“ zeigt die Aufgaben, die du übernommen hast.</Text>
+          {!loadingTasks ? <Text accessibilityLiveRegion="polite" style={ui.body}>{visible.length} von {tasks.length} Aufgaben</Text> : null}
+        </View>
         {loadingTasks ? <ActivityIndicator accessibilityLabel="Aufgaben werden geladen" color={colors.green} /> :
-          visible.length === 0 ? <View style={ui.card}><Text style={ui.heading}>Hier ist noch Platz für Engagement.</Text>
-            <Text style={ui.body}>{tasks.length ? 'Für diesen Filter gibt es keine Aufgaben.' : 'Erstelle die erste Aufgabe für deinen Verein.'}</Text></View> :
-            visible.map((task) => <View key={task.id} style={ui.card}>
+          visible.length === 0 ? <View style={ui.card}><Text style={ui.heading}>{tasks.length ? 'Keine passenden Aufgaben gefunden.' : 'Hier ist noch Platz für Engagement.'}</Text>
+            <Text style={ui.body}>{tasks.length ? 'Ändere die Suche oder setze die Filter zurück.' : 'Erstelle die erste Aufgabe für deinen Verein.'}</Text>
+            {tasks.length ? <Button label="Alle Aufgaben anzeigen" secondary onPress={resetFilters} /> : null}</View> :
+            visible.map((task) => {
+              const deadline = taskDeadline(task, today);
+              return <View key={task.id} style={[ui.card, deadline.overdue ? { borderColor: '#9A291C' } : undefined]}>
               <Text style={ui.eyebrow}>{labels[task.status]}{task.assigned_to === userId ? ' · DEINE AUFGABE' : ''}</Text>
               <Text style={ui.heading}>{task.title}</Text>
               {task.description ? <Text style={ui.body}>{task.description}</Text> : null}
-              <Text style={ui.body}>{task.due_date ? `Termin: ${new Date(`${task.due_date}T12:00:00`).toLocaleDateString('de-DE')}` : 'Ohne festen Termin'}</Text>
+              <Text style={[ui.body, deadline.overdue ? { color: '#9A291C', fontWeight: '700' } : undefined]}>{deadline.text}</Text>
               <View style={ui.row}>
                 {task.status === 'open' ? <Button label="Ich helfe mit" disabled={busy} onPress={() => act(task, 'claim')} /> : null}
                 {task.status === 'claimed' && task.assigned_to === userId ? <>
@@ -126,7 +148,7 @@ export function Dashboard({ userId }: { userId: string }) {
                   <Button label="Wieder öffnen" secondary disabled={busy} onPress={() => act(task, 'reopen')} /> : null}
                 {(task.created_by === userId || group.owner_id === userId) ? <Button label="Bearbeiten" secondary disabled={busy} onPress={() => setEditor(task)} /> : null}
               </View>
-            </View>)}
+            </View>; })}
       </> : null}
 
       <View style={ui.card}><Text style={ui.heading}>Verein erstellen oder beitreten</Text>
