@@ -13,6 +13,7 @@ Gemeinsame Aufgaben für Vereine und ehrenamtliche Teams. Eine Expo-Anwendung mi
 - Kennzeichnung überfälliger und heute fälliger Aufgaben anhand des lokalen Kalendertags; erledigte Aufgaben werden nicht als überfällig markiert
 - Sichtbare Tastaturfokussierung, umbrechende Kopfzeilen und Schaltflächen für schmale Ansichten
 - Verständliche Meldungen bei veralteten Aufgabenständen und ungültigen Einladungen; Speicherfehler erscheinen direkt im Aufgabenformular
+- Aufgabenformular als eigener Dialog, unabhängig von der Scrollposition der Liste. Ungespeicherte Eingaben werden beim Abbrechen erst nach Bestätigung verworfen; während des Speicherns bleibt der Dialog geöffnet.
 - Bestätigungen nach Speichern, Übernehmen und Statuswechseln. Falls die Änderung gespeichert wurde, aber das Neuladen scheitert, weist die App ausdrücklich darauf hin; die Schreibaktion wird nicht automatisch wiederholt.
 - Getrennte Vereinsdaten durch Datenbank-Zugriffsregeln (Row Level Security)
 - Gleichzeitige Änderungen werden anhand einer Versionsnummer abgesichert
@@ -59,6 +60,8 @@ npm audit
 Die Tests prüfen Eingabevalidierung und fehlerhafte API-Daten sowie die Migration mit lokalem PostgreSQL (PGlite, ausschließlich Testabhängigkeit). Dabei werden synthetische Authentifizierungskontexte verwendet: Vereinsgrenzen, verweigerte Fremdzugriffe, Schreibrechte, Aufgabenzustände und konkurrierende Versionsstände. Sie ersetzen keine Prüfung von Supabase Auth, E-Mail-Zustellung, API-Konfiguration und echten parallelen Netzwerkzugriffen. Die GitHub-Prüfung führt Typprüfung, Lint, Tests und Web-Export aus; Gerätetests erfolgen separat.
 
 Das Aufgabenformular wurde zusätzlich in einer getrennten lokalen Komponentenprüfung im Browser bei 320 und 390 Pixeln Breite geprüft: kein seitlicher Überlauf, Tab-/Enter-Bedienung, Pflichtfeld- und Datumsvalidierung sowie ein simulierter Speicherkonflikt mit erhaltenen Eingaben. Diese Prüfung verwendet keine Konten oder Vereinsdaten und ersetzt keinen vollständigen Anwendungstest mit Supabase.
+
+Der Aufgabendialog wurde ebenfalls isoliert geprüft: Öffnen aus gescrollter Ansicht, Fokus auf dem Titel, Tab-Begrenzung im Dialog, Escape und Rückkehr zum Auslöser, Rückfrage bei ungespeicherten Änderungen, Weiterbearbeiten mit erhaltenen Eingaben, bewusstes Verwerfen sowie verhindertes Schließen während einer simulierten Speicheranfrage. Die tatsächliche Bildschirmtastatur und Android-Zurück-Taste müssen auf Geräten geprüft werden.
 
 ## Struktur
 

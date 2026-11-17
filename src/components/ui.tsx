@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { useState } from 'react';
+import { useState, type ComponentPropsWithRef } from 'react';
 
 export const colors = { ink: '#173D36', muted: '#52665F', green: '#176B51', paper: '#F4F6F0', line: '#D7E0D7' };
 export const ui = StyleSheet.create({
@@ -15,10 +15,10 @@ export const ui = StyleSheet.create({
   error: { color: '#9A291C', fontSize: 16, lineHeight: 23 },
 });
 
-export function Button({ label, onPress, disabled = false, secondary = false, selected = false }:
-  { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; selected?: boolean }) {
+export function Button({ label, onPress, buttonRef, disabled = false, secondary = false, selected = false }:
+  { label: string; onPress: () => void; buttonRef?: ComponentPropsWithRef<typeof Pressable>['ref']; disabled?: boolean; secondary?: boolean; selected?: boolean }) {
   const [focused, setFocused] = useState(false);
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled, selected }}
+  return <Pressable ref={buttonRef} accessibilityRole="button" accessibilityState={{ disabled, selected }}
     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
     disabled={disabled} onPress={onPress} style={({ pressed }) => ({
       minHeight: 48, maxWidth: '100%', flexShrink: 1, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
@@ -27,10 +27,10 @@ export function Button({ label, onPress, disabled = false, secondary = false, se
       opacity: disabled ? 0.5 : pressed ? 0.75 : 1,
     })}><Text style={{ fontSize: 15, fontWeight: '600', color: secondary && !selected ? colors.ink : '#FFFFFF' }}>{label}</Text></Pressable>;
 }
-export function Field({ label, style, onFocus, onBlur, ...props }: TextInputProps & { label: string }) {
+export function Field({ label, inputRef, style, onFocus, onBlur, ...props }: TextInputProps & { label: string; inputRef?: ComponentPropsWithRef<typeof TextInput>['ref'] }) {
   const [focused, setFocused] = useState(false);
   return <View style={{ gap: 7 }}><Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{label}</Text>
-    <TextInput {...props} accessibilityLabel={label} placeholderTextColor="#64756D"
+    <TextInput {...props} ref={inputRef} accessibilityLabel={label} placeholderTextColor="#64756D"
       onFocus={(event) => { setFocused(true); onFocus?.(event); }}
       onBlur={(event) => { setFocused(false); onBlur?.(event); }} style={[{
       borderWidth: 2, borderColor: focused ? colors.green : colors.line, borderRadius: 10, padding: 12, minHeight: 48,
