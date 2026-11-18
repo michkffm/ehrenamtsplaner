@@ -14,7 +14,7 @@ test('Aufgaben validieren: Titel, Beschreibung und echte Kalendertage', () => {
 });
 test('Fehlerhafte API-Daten werden abgewiesen', () => {
   const task = { id: 'task', group_id: 'group', title: 'Aufbau', description: '', due_date: null,
-    status: 'open', created_by: 'user', assigned_to: null, version: 1 };
+    status: 'open', created_by: 'user', assigned_to: null, version: 1, priority: 'normal', color: 'none', progress: 0 };
   assert.deepEqual(parseTask(task), task);
   assert.throws(() => parseTask({ ...task, status: 'unknown' }));
   assert.throws(() => parseTask({ ...task, version: '1' }));

@@ -1,5 +1,5 @@
 import { client } from './supabase';
-import { parseGroups, parseTask, type TaskDraft } from './models';
+import { parseGroups, parseMembers, parseTask, type TaskDraft } from './models';
 
 export async function loadGroups() {
   const { data, error } = await client().from('groups').select('id,name,owner_id').order('name');
@@ -19,7 +19,11 @@ export async function rpc(name: string, args: Record<string, string | number | n
   return data as unknown;
 }
 export async function saveTask(groupId: string, draft: TaskDraft, id?: string, version?: number) {
-  await rpc('save_task', { p_group: groupId, p_title: draft.title.trim(),
+  await rpc('save_task_details', { p_group: groupId, p_title: draft.title.trim(),
     p_description: draft.description.trim(), p_due: draft.due_date || null,
-    p_id: id ?? null, p_version: version ?? null });
+    p_id: id ?? null, p_version: version ?? null, p_priority: draft.priority ?? 'normal', p_color: draft.color ?? 'none' });
+}
+
+export async function loadMembers(groupId: string) {
+  return parseMembers(await rpc('list_group_members', { p_group: groupId }));
 }

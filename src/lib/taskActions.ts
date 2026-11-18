@@ -1,11 +1,10 @@
-export type TaskAction = 'claim' | 'release' | 'complete' | 'reopen';
+import { translate, type Language } from './i18n.ts';
+export type TaskAction = 'claim' | 'release' | 'complete' | 'reopen' | 'start' | 'pause';
 
-export const taskActionMessages: Record<TaskAction, string> = {
-  claim: 'Du hast die Aufgabe übernommen.',
-  release: 'Die Aufgabe ist wieder für andere Helfende frei.',
-  complete: 'Die Aufgabe ist als erledigt markiert. Danke fürs Mithelfen!',
-  reopen: 'Die Aufgabe ist wieder geöffnet.',
-};
+export function taskActionMessage(action: TaskAction, language: Language): string {
+  const keys = { claim: 'claimedMessage', release: 'releasedMessage', complete: 'completedMessage', reopen: 'reopenedMessage', start: 'startedMessage', pause: 'pausedMessage' } as const;
+  return translate(language, keys[action]);
+}
 
 // A failed refresh must not turn a confirmed write into an apparent save failure.
 export async function performTaskAction(

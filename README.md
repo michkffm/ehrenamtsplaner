@@ -8,6 +8,13 @@ Gemeinsame Aufgaben für Vereine und ehrenamtliche Teams. Eine Expo-Anwendung mi
 - Vereinsbereiche erstellen und per vertraulichem Einladungscode beitreten
 - Aufgaben mit Beschreibung und optionalem Termin erstellen und bearbeiten
 - Aufgaben übernehmen, freigeben, erledigen und wieder öffnen
+- Kanbanboard mit den Spalten Offen, Geplant, In Arbeit und Erledigt; alternativ Listenansicht. Auf kleinen Bildschirmen stehen die Spalten untereinander. Statuswechsel erfolgen per Schaltfläche, nicht durch Ziehen der Karten.
+- Wichtigkeit Niedrig/Normal/Hoch/Dringend, Sortierung nach Wichtigkeit und Termin sowie Wichtigkeitsfilter
+- Pro Aufgabe eine wählbare Farbe (Standard, Grün, Blau, Gelb, Rot, Violett), mit zusätzlicher Textbeschriftung
+- Zuständige Personen aus echten Vereinsmitgliedern; nur die Vereinsleitung kann anderen Personen Aufgaben zuweisen. Eigene Anzeigenamen sind für Mitglieder desselben Vereins sichtbar, E-Mail-Adressen werden dabei nicht offengelegt.
+- Fortschritt von 0 bis 100 Prozent, Anfangen, Pausieren und Beenden. 100 Prozent oder Beenden schließt die Aufgabe ab. Pausieren erhält den Fortschritt; Freigeben, Wiederöffnen und Neuzuweisen setzen ihn zurück.
+- Deutsch/Englisch und Hell/Dunkel/System für die gesamte Oberfläche einschließlich Dialogen und Fehlermeldungen. Die Auswahl gilt derzeit für die laufende Sitzung; Aufgabentexte werden nicht automatisch übersetzt.
+- Anhänge pro Aufgabe: JPG, PNG, WebP, HEIC/HEIF und PDF bis 10 MB pro Datei. Vereinsmitglieder können Dateien hinzufügen und öffnen. Dateiname und Dateigröße werden angezeigt; Dateien liegen in einem privaten Supabase-Storage-Bucket.
 - Filter nach Bearbeitungsstand und manuelles Aktualisieren gemeinsamer Daten
 - Suche in Titel und Beschreibung, kombinierbar mit Status und „Meine Aufgaben“ (selbst übernommene Aufgaben)
 - Kennzeichnung überfälliger und heute fälliger Aufgaben anhand des lokalen Kalendertags; erledigte Aufgaben werden nicht als überfällig markiert
@@ -35,7 +42,7 @@ Für Android oder iOS: `npm start`, anschließend die zur Expo-Version passende 
 ## Supabase verbinden
 
 1. Ein Supabase-Projekt in einer geeigneten Region erstellen. Es wurde noch kein Cloud-Projekt für diese Anwendung eingerichtet und kein Tarif gebucht.
-2. Die Datei `supabase/migrations/202611170001_initial.sql` im SQL-Editor dieses neuen, leeren Projekts ausführen. Bei späterer Nutzung der Supabase CLI dieselbe Migration nicht erneut ausführen; zuerst den Migrationsstand abgleichen.
+2. Die Migrationen in `supabase/migrations/` in Dateinamen-Reihenfolge ausführen: `202611170001_initial.sql`, `202611170002_task_planning.sql`, `202611180003_task_attachments.sql`. Die zweite Migration ergänzt Wichtigkeit, Aufgabenfarben, Fortschritt, Anzeigenamen und Zuweisungsfunktionen. Vorhandene erledigte Aufgaben erhalten 100 Prozent; andere bestehende Aufgaben starten mit Wichtigkeit Normal, Standardfarbe und 0 Prozent. Die dritte Migration benötigt das Supabase-Storage-Schema und erstellt den privaten Bucket `task-attachments`, Metadaten und Zugriffsregeln. Bestehende Migrationen nicht erneut ausführen; bei Nutzung der Supabase CLI zuerst den Migrationsstand abgleichen.
 3. Unter Authentication E-Mail-Anmeldung und E-Mail-Bestätigung aktivieren, Mindestpasswortlänge 12 konfigurieren. Die Site URL auf die tatsächliche Webadresse setzen (lokal beispielsweise die beim Start ausgegebene Adresse). Der Bestätigungslink bestätigt das Konto; danach erfolgt die Anmeldung mit Passwort in der App. Kein automatischer Login über den Link.
 4. Projekt-URL und **Publishable Key** in `.env.local` eintragen:
    - `EXPO_PUBLIC_SUPABASE_URL`
@@ -62,6 +69,18 @@ Die Tests prüfen Eingabevalidierung und fehlerhafte API-Daten sowie die Migrati
 Das Aufgabenformular wurde zusätzlich in einer getrennten lokalen Komponentenprüfung im Browser bei 320 und 390 Pixeln Breite geprüft: kein seitlicher Überlauf, Tab-/Enter-Bedienung, Pflichtfeld- und Datumsvalidierung sowie ein simulierter Speicherkonflikt mit erhaltenen Eingaben. Diese Prüfung verwendet keine Konten oder Vereinsdaten und ersetzt keinen vollständigen Anwendungstest mit Supabase.
 
 Der Aufgabendialog wurde ebenfalls isoliert geprüft: Öffnen aus gescrollter Ansicht, Fokus auf dem Titel, Tab-Begrenzung im Dialog, Escape und Rückkehr zum Auslöser, Rückfrage bei ungespeicherten Änderungen, Weiterbearbeiten mit erhaltenen Eingaben, bewusstes Verwerfen sowie verhindertes Schließen während einer simulierten Speicheranfrage. Die tatsächliche Bildschirmtastatur und Android-Zurück-Taste müssen auf Geräten geprüft werden.
+
+Die Planungsfunktionen werden mit den Migrationen geprüft, einschließlich Bestandsdatenübernahme, privaten Anzeigenamen, fremden Vereinszugriffen, unberechtigten Zuweisungen, Versionskonflikten, ungültigen Prozentwerten, Start/Pause/Abschluss und dem Zurücksetzen bei Neuzuweisung. Sprachtests vergleichen alle Übersetzungsschlüssel und Platzhalter. Die getrennte Browser-Testkopie nutzt ausdrücklich synthetische Testdaten und keine echten Vereinsdaten.
+
+Die Anhangstests prüfen Dateikennungen, Größen, Namen und Storage-Zugriffsregeln. Das Storage-Metadatenschema wird für die lokalen PostgreSQL-Tests nachgebildet. Die Browser-Dateiauswahl und die Ablehnung leerer Dateien beziehungsweise als PDF getarnter HTML-Inhalte wurden in der isolierten Testoberfläche geprüft, auch mit englischen Fehlermeldungen und Dunkelmodus bei 320 Pixeln Breite. Der tatsächliche Supabase-Dateidienst, signierte Downloads und die Geräte-Dateiauswahl müssen nach der Cloud-Einrichtung separat geprüft werden.
+
+## Dateianhänge
+
+`expo-document-picker` wird für die plattformübergreifende System-Dateiauswahl verwendet. `expo-file-system` liest native Dateien als Binärdaten für den Supabase-Upload. Im Browser wird das gewählte File-Objekt direkt gelesen. Andere Dateitypen, insbesondere HTML und SVG, werden nicht angeboten; die App prüft zusätzlich die Dateikennung. Diese Prüfung ist kein Virenscan.
+
+Vor jedem Upload wird ein zu Aufgabe und Verein gehörender Datensatz reserviert. Erst nach erfolgreichem Upload sowie serverseitigem Abgleich von Besitzer, Dateityp und Größe wird der Anhang für die übrigen Vereinsmitglieder sichtbar. Bei einer fehlgeschlagenen Bestätigung bietet die laufende Ansicht „Upload abschließen“, ohne die Datei erneut hochzuladen. Fehlgeschlagenes Neuladen wird von einem fehlgeschlagenen Speichern unterschieden.
+
+Zum Öffnen werden nach Zugriffsprüfung kurzlebige, fünf Minuten gültige URLs erstellt. Wer eine solche URL erhält, kann sie bis zum Ablauf benutzen. Die Links werden nicht als dauerhafte öffentliche Links gespeichert. Eine Löschfunktion und die serverseitige Bereinigung verwaister Uploadreservierungen beziehungsweise unbestätigter Dateien sind vor einem öffentlichen Betrieb noch zu ergänzen. Fehlgeschlagene Uploads können solche Reservierungen hinterlassen; ein Neustart kann den lokalen Wiederholungszustand verlieren.
 
 ## Struktur
 

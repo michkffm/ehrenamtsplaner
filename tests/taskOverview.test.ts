@@ -4,7 +4,7 @@ import type { Task } from '../src/lib/models.ts';
 import { filterTasks, localDateKey, taskDeadline } from '../src/lib/taskOverview.ts';
 
 const open: Task = { id: '1', group_id: 'verein', title: 'Tische aufbauen', description: 'Für das Sommerfest',
-  due_date: '2026-11-16', status: 'open', created_by: 'ich', assigned_to: null, version: 1 };
+  due_date: '2026-11-16', status: 'open', created_by: 'ich', assigned_to: null, version: 1, priority: 'normal', color: 'none', progress: 0 };
 const mine: Task = { ...open, id: '2', title: 'Küche vorbereiten', description: 'Tische reinigen', status: 'claimed', assigned_to: 'ich' };
 const other: Task = { ...mine, id: '3', assigned_to: 'jemand-anderes' };
 const done: Task = { ...mine, id: '4', status: 'done' };

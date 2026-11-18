@@ -4,11 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { ui } from '../components/ui';
+import { useUI } from '../lib/preferences';
+import { PreferencesBar } from '../components/PreferencesBar';
 import { AuthScreen } from '../screens/AuthScreen';
 import { Dashboard } from '../screens/Dashboard';
 
 export default function Home() {
+  const { ui, t, dark } = useUI();
   const [session, setSession] = useState<Session | null>(null);
   useEffect(() => {
     if (!supabase) return;
@@ -19,15 +21,16 @@ export default function Home() {
     return () => { data.subscription.unsubscribe(); subscription.remove(); };
   }, []);
   return <SafeAreaView style={ui.page}>
-    <StatusBar style="dark" />
+    <StatusBar style={dark ? 'light' : 'dark'} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView keyboardShouldPersistTaps="handled"><View style={ui.container}>
-        <Text style={ui.eyebrow}>EHRENAMTSPLANER / GEMEINSAM ANPACKEN</Text>
-        {!supabase ? <View style={ui.card}><Text style={ui.title}>Ein guter Anfang für gute Taten.</Text>
-          <Text style={ui.body}>Der Ehrenamtsplaner wird eingerichtet. Anmeldung und gemeinsame Aufgaben stehen bereit, sobald die Datenbank verbunden ist.</Text>
-          <Text style={ui.body}>Es werden noch keine Daten übertragen. Bitte die Supabase-Einrichtung in der Projektanleitung abschließen.</Text>
+        <Text style={ui.eyebrow}>{t('appName')} / {t('tagline')}</Text>
+        <PreferencesBar />
+        {!supabase ? <View style={ui.card}><Text style={ui.title}>{t('setupTitle')}</Text>
+          <Text style={ui.body}>{t('setupText')}</Text>
+          <Text style={ui.body}>{t('setupHint')}</Text>
         </View> : session ? <Dashboard key={session.user.id} userId={session.user.id} /> : <AuthScreen />}
-        <Text style={ui.body}>Kleine Aufgaben. Große Wirkung.</Text>
+        <Text style={ui.body}>{t('footer')}</Text>
       </View></ScrollView>
     </KeyboardAvoidingView>
   </SafeAreaView>;
