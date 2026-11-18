@@ -164,8 +164,14 @@ export const de = {
   "attachmentSizeError": "Die Datei ist leer oder größer als 10 MB.",
   "attachmentTypeError": "Bitte ein unterstütztes Foto oder eine PDF-Datei wählen.",
   "attachmentNameError": "Die Datei benötigt einen gültigen Dateinamen.",
-  "attachmentPending": "Die Datei wurde hochgeladen, aber noch nicht bestätigt. Bitte den Upload abschließen; die Datei nicht erneut hochladen.",
+  "attachmentPending": "Der Upload ist noch nicht bestätigt. Aktualisiere die Anhänge und setze den offenen Upload fort.",
   "attachmentFinish": "Upload abschließen",
+  "attachmentUnfinished": "Offener Upload: {name}",
+  "attachmentRetryFinishHint": "Die Datei liegt auf dem Server. Du kannst den Upload ohne erneutes Hochladen abschließen.",
+  "attachmentRetrySelectHint": "Wähle die ursprüngliche Datei erneut aus. Name, Typ und Größe müssen übereinstimmen. Die Übertragung startet von vorne im bestehenden Eintrag.",
+  "attachmentRetrySelect": "Datei erneut auswählen",
+  "attachmentRetryMismatch": "Bitte wähle die ursprüngliche Datei mit gleichem Namen, Typ und gleicher Größe aus.",
+  "attachmentRecoveryLoadFailed": "Offene Uploads konnten nicht geladen werden. Bitte aktualisiere die Anhänge, bevor du einen neuen Upload startest.",
   "attachmentPopup": "Bitte das Öffnen eines neuen Tabs für diese Seite erlauben und erneut versuchen.",
   "attachmentReloadFailed": "Der Anhang ist gespeichert. Die Liste konnte nicht neu geladen werden; bitte aktualisieren und nicht erneut hochladen."
 } as const;
@@ -335,8 +341,14 @@ export const en: Record<MessageKey, string> = {
   "attachmentSizeError": "The file is empty or larger than 10 MB.",
   "attachmentTypeError": "Please select a supported photo or PDF file.",
   "attachmentNameError": "The file needs a valid name.",
-  "attachmentPending": "The file was uploaded but has not been confirmed. Finish the upload; do not upload the file again.",
+  "attachmentPending": "The upload has not been confirmed. Refresh attachments and resume the unfinished upload.",
   "attachmentFinish": "Finish upload",
+  "attachmentUnfinished": "Unfinished upload: {name}",
+  "attachmentRetryFinishHint": "The file is on the server. Finish the upload without transferring it again.",
+  "attachmentRetrySelectHint": "Select the original file again. Name, type and size must match. Transfer restarts using the existing entry.",
+  "attachmentRetrySelect": "Select file again",
+  "attachmentRetryMismatch": "Please select the original file with the same name, type and size.",
+  "attachmentRecoveryLoadFailed": "Unfinished uploads could not be loaded. Please refresh attachments before starting another upload.",
   "attachmentPopup": "Please allow this site to open a new tab and try again.",
   "attachmentReloadFailed": "The attachment is saved. The list could not be reloaded; please refresh without uploading again."
 };

@@ -1,8 +1,9 @@
+import { transferReservedAttachment } from '../src/lib/attachmentTransfer.ts';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
-import { attachmentType, cleanAttachmentName, maxAttachmentBytes, parseAttachments } from '../src/lib/attachmentFiles.ts';
+import { attachmentType, cleanAttachmentName, maxAttachmentBytes, matchesPendingAttachment, parseAttachments, parsePendingAttachments } from '../src/lib/attachmentFiles.ts';
 
 test('Anhänge: erlaubte Dateikennungen, Namen und Größen werden geprüft', () => {
   assert.equal(attachmentType(new Uint8Array([137,80,78,71,13,10,26,10])), 'image/png');
@@ -19,6 +20,18 @@ test('Anhänge: erlaubte Dateikennungen, Namen und Größen werden geprüft', ()
     assert.throws(() => parseAttachments([{...row,...invalid}]));
   }
   assert.throws(() => parseAttachments(null));
+});
+
+test('Upload-Wiederaufnahme validiert Serverdaten und erneut gewählte Dateien', () => {
+  const row = { id:'slot', task_id:'task', filename:'foto.jpg', mime_type:'image/jpeg', size_bytes:100,
+    storage_path:'group/task/slot.jpg', created_at:'2026-11-18', created_by:'uploader', uploaded:false };
+  const [pending] = parsePendingAttachments([row]);
+  assert.equal(matchesPendingAttachment(pending, 'foto.jpg', 'image/jpeg', 100), true);
+  assert.equal(matchesPendingAttachment(pending, 'anderes.jpg', 'image/jpeg', 100), false);
+  assert.equal(matchesPendingAttachment(pending, 'foto.jpg', 'image/png', 100), false);
+  assert.equal(matchesPendingAttachment(pending, 'foto.jpg', 'image/jpeg', 99), false);
+  assert.throws(() => parsePendingAttachments([{...row, uploaded:'false'}]));
+  assert.throws(() => parsePendingAttachments([{...row, uploaded:undefined}]));
 });
 
 test('Anhangsregeln: privater Speicher, Vereinsgrenzen, Uploadbesitz und bestätigte Metadaten', async () => {
@@ -57,6 +70,14 @@ test('Anhangsregeln: privater Speicher, Vereinsgrenzen, Uploadbesitz und bestät
     const task = (await db.query<{id:string}>("select public.save_task($1,'Unterlagen sammeln','',null) as id",[group])).rows[0].id;
     const invite = (await db.query<{code:string}>('select public.get_invite_code($1) as code',[group])).rows[0].code;
     const upload = await slot(task);
+    const recovered = await db.query<{id:string; uploaded:boolean}>('select * from public.list_pending_task_attachments($1)', [task]);
+    assert.equal(recovered.rows[0].id, upload.attachment_id);
+    assert.equal(recovered.rows[0].uploaded, false);
+    // Logging out and back in does not lose the server-side reservation.
+    await asUser(outsider);
+    assert.equal((await db.query('select * from public.list_pending_task_attachments($1)', [task])).rows.length, 0);
+    await asUser(owner);
+    assert.equal((await db.query('select * from public.list_pending_task_attachments($1)', [task])).rows.length, 1);
     assert.ok(upload.storage_path.startsWith(`${group}/${task}/`));
     await assert.rejects(slot(task,'test.html','text/html'),/invalid_request/);
     await assert.rejects(slot(task,'leer.pdf','application/pdf',0),/invalid_request/);
@@ -65,13 +86,16 @@ test('Anhangsregeln: privater Speicher, Vereinsgrenzen, Uploadbesitz und bestät
     await assert.rejects(db.query("insert into storage.objects(bucket_id,name,owner_id,metadata) values('task-attachments','arbitrary/path.jpg',$1,'{}')",[owner]),/row-level security/);
 
     await asUser(helper); await db.query('select public.join_group($1)',[invite]);
+    assert.equal((await db.query('select * from public.list_pending_task_attachments($1)', [task])).rows.length,0);
     assert.equal((await db.query('select * from public.task_attachments')).rows.length,0);
     await assert.rejects(db.query("insert into storage.objects(bucket_id,name,owner_id,metadata) values('task-attachments',$1,$2,'{}')",[upload.storage_path,helper]),/row-level security/);
     await assert.rejects(db.query('select public.finish_task_attachment($1)',[upload.attachment_id]),/not_allowed/);
 
     await asUser(owner);
     await db.query("insert into storage.objects(bucket_id,name,owner_id,metadata) values('task-attachments',$1,$2,$3)",[upload.storage_path,owner,JSON.stringify({size:100,mimetype:'image/jpeg'})]);
+    assert.equal((await db.query<{uploaded:boolean}>('select * from public.list_pending_task_attachments($1)', [task])).rows[0].uploaded, true);
     await db.query('select public.finish_task_attachment($1)',[upload.attachment_id]);
+    assert.equal((await db.query('select * from public.list_pending_task_attachments($1)', [task])).rows.length,0);
     await db.query('select public.finish_task_attachment($1)',[upload.attachment_id]);
     assert.equal((await db.query('select * from public.task_attachments')).rows.length,1);
     const mismatch = await slot(task,'zweites.jpg');
@@ -120,10 +144,35 @@ test('Anhangsregeln: privater Speicher, Vereinsgrenzen, Uploadbesitz und bestät
     assert.equal((await db.query('select * from public.task_attachments')).rows.length,0);
     // Unconfirmed uploads remain outside this deletion flow.
     assert.equal((await db.query('delete from storage.objects where name=$1 returning id',[mismatch.storage_path])).rows.length,0);
+    await db.exec('reset role');
+    await db.query('delete from public.memberships where user_id=$1 and group_id=$2', [owner, group]);
+    await asUser(owner);
+    assert.equal((await db.query('select * from public.list_pending_task_attachments($1)', [task])).rows.length, 0);
+    await assert.rejects(db.query('select public.finish_task_attachment($1)',[mismatch.attachment_id]),/not_allowed/);
     await db.exec('reset role; set role anon');
     await db.query("select set_config('request.jwt.claim.sub','',false)");
     assert.equal((await db.query('select * from storage.objects')).rows.length,0);
     await assert.rejects(db.query('select * from public.task_attachments'),/permission denied/);
+    await assert.rejects(db.query('select * from public.list_pending_task_attachments($1)',[task]),/permission denied/);
     await assert.rejects(db.query('select public.finish_attachment_deletion($1)',[upload.attachment_id]),/permission denied/);
   } finally { await db.close(); }
+});
+
+test('Upload-Wiederaufnahme vermeidet Doppelübertragung und behandelt verlorene Antworten', async () => {
+  let uploads = 0;
+  await transferReservedAttachment({ resume:true, finish:async () => {}, upload:async () => { uploads++; } });
+  assert.equal(uploads, 0);
+  let finishes = 0;
+  await transferReservedAttachment({ resume:true, finish:async () => {
+    if (++finishes === 1) throw new Error('attachment_not_uploaded');
+  }, upload:async () => { uploads++; } });
+  assert.equal(uploads, 1); assert.equal(finishes, 2);
+  await assert.rejects(transferReservedAttachment({ resume:true, finish:async () => { throw new Error('not_allowed'); },
+    upload:async () => { uploads++; } }), /not_allowed/);
+  assert.equal(uploads, 1);
+  await transferReservedAttachment({ resume:false, finish:async () => {}, upload:async () => { throw new Error('response_lost'); } });
+  await assert.rejects(transferReservedAttachment({ resume:false,
+    finish:async () => { throw new Error('offline'); }, upload:async () => { throw new Error('response_lost'); } }), /response_lost/);
+  await assert.rejects(transferReservedAttachment({ resume:false,
+    finish:async () => { throw new Error('offline'); }, upload:async () => {} }), /offline/);
 });

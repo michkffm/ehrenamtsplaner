@@ -37,3 +37,19 @@ export function parseAttachments(value: unknown): Attachment[] {
       size_bytes: row.size_bytes, storage_path: row.storage_path, created_at: row.created_at, created_by: row.created_by };
   });
 }
+
+export type PendingAttachment = Attachment & { uploaded: boolean };
+
+export function parsePendingAttachments(value: unknown): PendingAttachment[] {
+  const files = parseAttachments(value);
+  if (!Array.isArray(value)) throw new Error('invalid_data');
+  return files.map((file, index) => {
+    const row: unknown = value[index];
+    if (!row || typeof row !== 'object' || !('uploaded' in row) || typeof row.uploaded !== 'boolean') throw new Error('invalid_data');
+    return { ...file, uploaded: row.uploaded };
+  });
+}
+
+export function matchesPendingAttachment(file: PendingAttachment, name: string, mime: AttachmentMime, size: number): boolean {
+  return file.filename === cleanAttachmentName(name) && file.mime_type === mime && file.size_bytes === size;
+}

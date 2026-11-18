@@ -1,12 +1,13 @@
+import { transferReservedAttachment } from './attachmentTransfer';
 import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { client } from './supabase';
 import { rpc } from './api';
-import { attachmentMimeTypes, attachmentType, cleanAttachmentName, maxAttachmentBytes, parseAttachments, type Attachment } from './attachmentFiles';
+import { attachmentMimeTypes, attachmentType, cleanAttachmentName, maxAttachmentBytes, matchesPendingAttachment, parseAttachments, parsePendingAttachments, type Attachment, type PendingAttachment } from './attachmentFiles';
 import type { Task } from './models';
 
 export class AttachmentError extends Error {
-  constructor(public kind: 'size' | 'type' | 'name' | 'pending' | 'popup', public attachmentId?: string) { super(kind); }
+  constructor(public kind: 'size' | 'type' | 'name' | 'pending' | 'popup' | 'mismatch', public attachmentId?: string) { super(kind); }
 }
 
 export function chooseAttachment() {
@@ -20,11 +21,15 @@ export async function loadTaskAttachments(taskId: string): Promise<Attachment[]>
   return parseAttachments(data);
 }
 
+export async function loadPendingAttachments(taskId: string): Promise<PendingAttachment[]> {
+  return parsePendingAttachments(await rpc('list_pending_task_attachments', { p_task: taskId }));
+}
+
 export async function finishAttachment(id: string) {
   await rpc('finish_task_attachment', { p_id: id });
 }
 
-export async function uploadTaskAttachment(task: Task, asset: DocumentPicker.DocumentPickerAsset) {
+export async function uploadTaskAttachment(task: Task, asset: DocumentPicker.DocumentPickerAsset, pending?: PendingAttachment) {
   const filename = cleanAttachmentName(asset.name);
   if (!filename) throw new AttachmentError('name');
   let size: number;
@@ -43,19 +48,29 @@ export async function uploadTaskAttachment(task: Task, asset: DocumentPicker.Doc
   if (content.byteLength !== size) throw new AttachmentError('size');
   const mime = attachmentType(new Uint8Array(content));
   if (!mime) throw new AttachmentError('type');
-  const slot = await rpc('begin_task_attachment', { p_task: task.id, p_filename: filename, p_mime: mime, p_size: size });
-  if (!Array.isArray(slot) || slot.length !== 1 || !slot[0] || typeof slot[0] !== 'object') throw new Error('invalid_data');
-  const record = slot[0] as Record<string, unknown>;
-  if (typeof record.attachment_id !== 'string' || typeof record.storage_path !== 'string'
-    || !record.storage_path.startsWith(`${task.group_id}/${task.id}/${record.attachment_id}.`)) throw new Error('invalid_data');
-  const id = record.attachment_id;
-  const uploaded = await client().storage.from('task-attachments').upload(record.storage_path, content, { contentType: mime, upsert: false });
-  if (uploaded.error) {
-    // A response can be lost after the server has stored the file. Check without uploading twice.
-    try { await finishAttachment(id); return; } catch { throw uploaded.error; }
+  let id: string;
+  let path: string;
+  if (pending) {
+    if (pending.task_id !== task.id || !matchesPendingAttachment(pending, filename, mime, size)) throw new AttachmentError('mismatch');
+    id = pending.id; path = pending.storage_path;
+  } else {
+    const slot = await rpc('begin_task_attachment', { p_task: task.id, p_filename: filename, p_mime: mime, p_size: size });
+    if (!Array.isArray(slot) || slot.length !== 1 || !slot[0] || typeof slot[0] !== 'object') throw new Error('invalid_data');
+    const record = slot[0] as Record<string, unknown>;
+    if (typeof record.attachment_id !== 'string' || typeof record.storage_path !== 'string'
+      || !record.storage_path.startsWith(`${task.group_id}/${task.id}/${record.attachment_id}.`)) throw new Error('invalid_data');
+    id = record.attachment_id; path = record.storage_path;
   }
-  try { await finishAttachment(id); }
-  catch { throw new AttachmentError('pending', id); }
+  try {
+    await transferReservedAttachment({
+      resume: Boolean(pending),
+      finish: () => finishAttachment(id),
+      upload: async () => {
+        const { error } = await client().storage.from('task-attachments').upload(path, content, { contentType: mime, upsert: false });
+        if (error) throw error;
+      },
+    });
+  } catch { throw new AttachmentError('pending', id); }
 }
 
 export async function attachmentUrl(path: string): Promise<string> {
