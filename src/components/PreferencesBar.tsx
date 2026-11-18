@@ -3,8 +3,9 @@ import { useUI } from '../lib/preferences';
 import { Button } from './ui';
 
 export function PreferencesBar() {
-  const { ui, t, language, setLanguage, themeMode, setThemeMode } = useUI();
+  const { ui, t, language, setLanguage, themeMode, setThemeMode, storageError } = useUI();
   return <View style={ui.card}>
+    {storageError && <Text accessibilityRole="alert" style={ui.error}>{t('preferencesStorageError')}</Text>}
     <View style={ui.row}><Text style={ui.body}>{t('language')}</Text>
       <Button label="Deutsch" secondary selected={language === 'de'} onPress={() => setLanguage('de')} />
       <Button label="English" secondary selected={language === 'en'} onPress={() => setLanguage('en')} />

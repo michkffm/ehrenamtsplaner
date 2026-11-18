@@ -15,7 +15,7 @@ export function chooseAttachment() {
 
 export async function loadTaskAttachments(taskId: string): Promise<Attachment[]> {
   const { data, error } = await client().from('task_attachments')
-    .select('id,task_id,filename,mime_type,size_bytes,storage_path,created_at').eq('task_id', taskId).order('created_at');
+    .select('id,task_id,filename,mime_type,size_bytes,storage_path,created_at,created_by').eq('task_id', taskId).order('created_at');
   if (error) throw error;
   return parseAttachments(data);
 }
@@ -63,4 +63,11 @@ export async function attachmentUrl(path: string): Promise<string> {
   if (error) throw error;
   if (!data?.signedUrl) throw new Error('invalid_data');
   return data.signedUrl;
+}
+
+export async function deleteAttachment(file: Attachment): Promise<void> {
+  const { error } = await client().storage.from('task-attachments').remove([file.storage_path]);
+  if (error) throw error;
+  // Keep metadata until Storage confirms removal. Retrying after a partial success is safe.
+  await rpc('finish_attachment_deletion', { p_id: file.id });
 }

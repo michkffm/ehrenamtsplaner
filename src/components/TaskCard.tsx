@@ -67,6 +67,6 @@ export function TaskCard({ task, members, userId, ownerId, today, busy, onAction
       {task.created_by === userId || ownerId === userId ? <Button label={t('edit')} secondary disabled={busy} onPress={() => onEdit(task)} /> : null}
       {ownerId === userId && task.status !== 'done' ? <Button label={t('assign')} secondary disabled={busy} onPress={() => onAssign(task)} /> : null}
     </View>
-    <TaskAttachments task={task} disabled={busy} />
+    <TaskAttachments task={task} disabled={busy} userId={userId} ownerId={ownerId} />
   </View>;
 }

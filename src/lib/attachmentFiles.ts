@@ -3,7 +3,7 @@ export const attachmentMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'im
 export type AttachmentMime = typeof attachmentMimeTypes[number];
 export type Attachment = {
   id: string; task_id: string; filename: string; mime_type: AttachmentMime;
-  size_bytes: number; storage_path: string; created_at: string;
+  size_bytes: number; storage_path: string; created_at: string; created_by: string;
 };
 
 export function attachmentType(bytes: Uint8Array): AttachmentMime | null {
@@ -31,9 +31,9 @@ export function parseAttachments(value: unknown): Attachment[] {
     const mime = attachmentMimeTypes.find((type) => type === row.mime_type);
     if (typeof row.id !== 'string' || typeof row.task_id !== 'string' || typeof row.filename !== 'string'
       || !row.filename || row.filename.length > 120 || typeof row.storage_path !== 'string'
-      || typeof row.created_at !== 'string' || !mime || typeof row.size_bytes !== 'number'
+      || typeof row.created_by !== 'string' || typeof row.created_at !== 'string' || !mime || typeof row.size_bytes !== 'number'
       || !Number.isInteger(row.size_bytes) || row.size_bytes <= 0 || row.size_bytes > maxAttachmentBytes) throw new Error('invalid_data');
     return { id: row.id, task_id: row.task_id, filename: row.filename, mime_type: mime,
-      size_bytes: row.size_bytes, storage_path: row.storage_path, created_at: row.created_at };
+      size_bytes: row.size_bytes, storage_path: row.storage_path, created_at: row.created_at, created_by: row.created_by };
   });
 }

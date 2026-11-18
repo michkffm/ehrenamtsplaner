@@ -13,7 +13,7 @@ test('Anhänge: erlaubte Dateikennungen, Namen und Größen werden geprüft', ()
   for (const content of ['', '<script>alert(1)</script>', '<svg></svg>', 'MZbinary']) assert.equal(attachmentType(new TextEncoder().encode(content)), null);
   assert.equal(cleanAttachmentName('../test\\foto\u0000.jpg'), '.._test_foto_.jpg');
   assert.equal(cleanAttachmentName('a'.repeat(200)).length, 120);
-  const row = { id:'file', task_id:'task', filename:'foto.jpg', mime_type:'image/jpeg', size_bytes:100, storage_path:'group/task/file.jpg', created_at:'2026-11-18' };
+  const row = { id:'file', task_id:'task', filename:'foto.jpg', mime_type:'image/jpeg', size_bytes:100, storage_path:'group/task/file.jpg', created_at:'2026-11-18', created_by:'uploader' };
   assert.equal(parseAttachments([row])[0].size_bytes, 100);
   for (const invalid of [{size_bytes:0},{size_bytes:maxAttachmentBytes+1},{mime_type:'text/html'},{filename:''},{size_bytes:1.5}]) {
     assert.throws(() => parseAttachments([{...row,...invalid}]));
@@ -86,13 +86,44 @@ test('Anhangsregeln: privater Speicher, Vereinsgrenzen, Uploadbesitz und bestät
     assert.equal((await db.query("update storage.objects set metadata='{}' returning id")).rows.length,0);
     assert.equal((await db.query('delete from storage.objects returning id')).rows.length,0);
 
+    // A member cannot delete another person's upload, even by calling the RPC directly.
+    await assert.rejects(db.query('select public.finish_attachment_deletion($1)',[upload.attachment_id]),/not_allowed/);
+    const ownUpload = await slot(task, 'eigene-datei.jpg');
+    await db.query("insert into storage.objects(bucket_id,name,owner_id,metadata) values('task-attachments',$1,$2,$3)",
+      [ownUpload.storage_path,helper,JSON.stringify({size:100,mimetype:'image/jpeg'})]);
+    await db.query('select public.finish_task_attachment($1)',[ownUpload.attachment_id]);
+    await assert.rejects(db.query('select public.finish_attachment_deletion($1)',[ownUpload.attachment_id]),/attachment_still_uploaded/);
+    assert.equal((await db.query('delete from storage.objects where name=$1 returning id',[ownUpload.storage_path])).rows.length,1);
+    await db.query('select public.finish_attachment_deletion($1)',[ownUpload.attachment_id]);
+    await db.query('select public.finish_attachment_deletion($1)',[ownUpload.attachment_id]);
+    assert.equal((await db.query('select * from public.task_attachments')).rows.length,1);
+
+    const managedUpload = await slot(task, 'vereinsdatei.jpg');
+    await db.query("insert into storage.objects(bucket_id,name,owner_id,metadata) values('task-attachments',$1,$2,$3)",
+      [managedUpload.storage_path,helper,JSON.stringify({size:100,mimetype:'image/jpeg'})]);
+    await db.query('select public.finish_task_attachment($1)',[managedUpload.attachment_id]);
+    await asUser(owner);
+    assert.equal((await db.query('delete from storage.objects where name=$1 returning id',[managedUpload.storage_path])).rows.length,1);
+    await db.query('select public.finish_attachment_deletion($1)',[managedUpload.attachment_id]);
+
     await asUser(outsider);
     assert.equal((await db.query('select * from public.task_attachments')).rows.length,0);
     assert.equal((await db.query('select * from storage.objects')).rows.length,0);
     await assert.rejects(slot(task),/not_allowed/);
+    assert.equal((await db.query('delete from storage.objects where name=$1 returning id',[upload.storage_path])).rows.length,0);
+    await assert.rejects(db.query('select public.finish_attachment_deletion($1)',[upload.attachment_id]),/not_allowed/);
+
+    await asUser(owner);
+    await assert.rejects(db.query('select public.finish_attachment_deletion($1)',[upload.attachment_id]),/attachment_still_uploaded/);
+    assert.equal((await db.query('delete from storage.objects where name=$1 returning id',[upload.storage_path])).rows.length,1);
+    await db.query('select public.finish_attachment_deletion($1)',[upload.attachment_id]);
+    assert.equal((await db.query('select * from public.task_attachments')).rows.length,0);
+    // Unconfirmed uploads remain outside this deletion flow.
+    assert.equal((await db.query('delete from storage.objects where name=$1 returning id',[mismatch.storage_path])).rows.length,0);
     await db.exec('reset role; set role anon');
     await db.query("select set_config('request.jwt.claim.sub','',false)");
     assert.equal((await db.query('select * from storage.objects')).rows.length,0);
     await assert.rejects(db.query('select * from public.task_attachments'),/permission denied/);
+    await assert.rejects(db.query('select public.finish_attachment_deletion($1)',[upload.attachment_id]),/permission denied/);
   } finally { await db.close(); }
 });

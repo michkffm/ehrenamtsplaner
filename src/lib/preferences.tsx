@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
+import { readPreferences, writePreferences } from './preferenceStorage';
+import { defaultPreferences, parsePreferences, type SavedPreferences, type ThemeMode } from './preferenceValues';
 import { translate, type Language, type MessageKey } from './i18n';
 
 const palettes = {
@@ -22,8 +24,8 @@ function styles(colors: typeof palettes.light) {
   });
 }
 
-type ThemeMode = 'system' | 'light' | 'dark';
 type Preferences = {
+  storageError: boolean;
   language: Language; setLanguage: (language: Language) => void;
   themeMode: ThemeMode; setThemeMode: (theme: ThemeMode) => void; dark: boolean;
   colors: typeof palettes.light; ui: ReturnType<typeof styles>;
@@ -32,15 +34,27 @@ type Preferences = {
 const Context = createContext<Preferences | null>(null);
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('de');
-  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  const [state, setState] = useState(() => {
+    try { return { saved: parsePreferences(readPreferences()), storageError: false }; }
+    catch { return { saved: { ...defaultPreferences }, storageError: true }; }
+  });
+  const { language, themeMode } = state.saved;
+  function update(change: Partial<SavedPreferences>) {
+    const saved = { ...state.saved, ...change };
+    let storageError = false;
+    try { writePreferences(JSON.stringify(saved)); }
+    catch { storageError = true; }
+    setState({ saved, storageError });
+  }
+  const setLanguage = (language: Language) => update({ language });
+  const setThemeMode = (themeMode: ThemeMode) => update({ themeMode });
   const system = useColorScheme();
   const dark = themeMode === 'dark' || (themeMode === 'system' && system === 'dark');
   const colors = palettes[dark ? 'dark' : 'light'];
   const ui = useMemo(() => styles(colors), [colors]);
-  const value = useMemo(() => ({ language, setLanguage, themeMode, setThemeMode, dark, colors, ui,
+  const value = { storageError: state.storageError, language, setLanguage, themeMode, setThemeMode, dark, colors, ui,
     t: (key: MessageKey, values?: Record<string, string | number>) => translate(language, key, values),
-  }), [language, themeMode, dark, colors, ui]);
+  };
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
