@@ -41,17 +41,19 @@ Für Android oder iOS: `npm start`, anschließend die zur Expo-Version passende 
 
 ## Supabase verbinden
 
-1. Ein Supabase-Projekt in einer geeigneten Region erstellen. Es wurde noch kein Cloud-Projekt für diese Anwendung eingerichtet und kein Tarif gebucht.
+1. Für neue Installationen ein Supabase-Projekt in einer geeigneten Region erstellen. Der Entwicklungsstand vom 20.11.2026 verwendet das Projekt `ehrenamtsplaner` in Frankfurt im Free-Tarif. Die fünf unten genannten Migrationen sind dort ausgeführt und in `supabase_migrations.schema_migrations` erfasst; nicht erneut ausführen. Die lokale Verbindung steht in der von Git ignorierten `.env.local`.
 2. Die Migrationen in `supabase/migrations/` in Dateinamen-Reihenfolge ausführen: `202611170001_initial.sql`, `202611170002_task_planning.sql`, `202611180003_task_attachments.sql`, `202611180004_attachment_deletion.sql`, `202611180005_attachment_recovery.sql`. Die zweite Migration ergänzt Wichtigkeit, Aufgabenfarben, Fortschritt, Anzeigenamen und Zuweisungsfunktionen. Vorhandene erledigte Aufgaben erhalten 100 Prozent; andere bestehende Aufgaben starten mit Wichtigkeit Normal, Standardfarbe und 0 Prozent. Die dritte Migration benötigt das Supabase-Storage-Schema und erstellt den privaten Bucket `task-attachments`, Metadaten und Zugriffsregeln. Die vierte Migration ergänzt das berechtigte Löschen, die fünfte das Wiederfinden eigener offener Uploads. Bestehende Migrationen nicht erneut ausführen; bei Nutzung der Supabase CLI zuerst den Migrationsstand abgleichen.
-3. Unter Authentication E-Mail-Anmeldung und E-Mail-Bestätigung aktivieren, Mindestpasswortlänge 12 konfigurieren. Die Site URL auf die tatsächliche Webadresse setzen (lokal beispielsweise die beim Start ausgegebene Adresse). Der Bestätigungslink bestätigt das Konto; danach erfolgt die Anmeldung mit Passwort in der App. Kein automatischer Login über den Link.
+3. Unter Authentication E-Mail-Anmeldung und E-Mail-Bestätigung aktivieren, Mindestpasswortlänge 12 konfigurieren. Die Site URL auf die tatsächliche Webadresse setzen (lokal derzeit `http://localhost:8081`). Der Bestätigungslink bestätigt das Konto; danach erfolgt die Anmeldung mit Passwort in der App. Kein automatischer Login über den Link.
 4. Projekt-URL und **Publishable Key** in `.env.local` eintragen:
    - `EXPO_PUBLIC_SUPABASE_URL`
    - `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-5. Expo neu starten. Ein Konto registrieren, E-Mail bestätigen, anmelden und Verein erstellen. Ein zweites bestätigtes Konto kann über den Einladungscode beitreten.
+5. Expo neu starten (für die konfigurierte lokale Adresse: `npx expo start --web --localhost --port 8081`). Ein Konto registrieren, E-Mail bestätigen, anmelden und Verein erstellen. Ein zweites bestätigtes Konto kann über den Einladungscode beitreten.
 
 `EXPO_PUBLIC_*` ist im ausgelieferten Client lesbar. Hier ausschließlich den öffentlichen Publishable Key verwenden, **niemals** einen Secret Key, Service-Role-Key oder ein Datenbankpasswort. Die Datenbankregeln schützen Vereinsdaten. Einladungscodes nur an gewünschte Mitglieder weitergeben; sie erlauben den Beitritt zum jeweiligen Verein.
 
 Passwörter werden ausschließlich von Supabase Auth verwaltet. Sitzungen bleiben in dieser Version im Arbeitsspeicher; nach Neuladen oder Neustart ist eine erneute Anmeldung nötig. Keine lokale Ablage von Zugangsdaten. Die öffentliche Registrierung und deren Missbrauchsschutz werden vor einem öffentlichen Betrieb im Supabase-Projekt konfiguriert.
+
+Der Supabase-Standard-Mailversand ist nur für Tests mit den E-Mail-Adressen der Organisationsmitglieder vorgesehen. Für Registrierungen weiterer Ehrenamtlicher muss ein eigener SMTP-Versand eingerichtet werden; die E-Mail-Bestätigung bleibt aktiviert. Siehe [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp). Echte Registrierung, vereinsübergreifende Abläufe und Datei-Uploads sind nach der Einrichtung noch gemeinsam zu prüfen.
 
 ## Prüfungen
 
