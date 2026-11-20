@@ -3,7 +3,6 @@ export type Language = 'de' | 'en';
 export const de = {
   "appName": "Ehrenamtsplaner",
   "tagline": "Gemeinsam anpacken",
-  "footer": "Kleine Aufgaben. Große Wirkung.",
   "language": "Sprache",
   "appearance": "Darstellung",
   "preferencesStorageError": "Die Einstellungen konnten nicht geladen oder gespeichert werden. Deine Auswahl gilt vorerst für diese Sitzung.",
@@ -180,7 +179,6 @@ export type MessageKey = keyof typeof de;
 export const en: Record<MessageKey, string> = {
   "appName": "Volunteer Planner",
   "tagline": "Make a difference together",
-  "footer": "Small tasks. Big impact.",
   "language": "Language",
   "appearance": "Appearance",
   "preferencesStorageError": "Settings could not be loaded or saved. Your selection applies to this session for now.",
