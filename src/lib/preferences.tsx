@@ -5,8 +5,8 @@ import { defaultPreferences, parsePreferences, type SavedPreferences, type Theme
 import { translate, type Language, type MessageKey } from './i18n';
 
 const palettes = {
-  light: { ink: '#242044', muted: '#605777', green: '#6236F5', paper: '#F3F0FF', surface: '#FFFFFF', line: '#C5B9E5', secondary: '#E5DCFF', onGreen: '#FFFFFF', error: '#BA2349', focus: '#8E23E8' },
-  dark: { ink: '#F8F4FF', muted: '#C9BDDF', green: '#BA98FF', paper: '#120B26', surface: '#24143E', line: '#8770AA', secondary: '#40245E', onGreen: '#200A3B', error: '#FF9CB8', focus: '#FFCB61' },
+  light: { ink: '#123D39', muted: '#4C6B65', green: '#007D73', paper: '#EDF8F4', surface: '#FFFFFF', line: '#A8CEC1', secondary: '#D1EEE3', onGreen: '#FFFFFF', error: '#BA2349', focus: '#00665D' },
+  dark: { ink: '#EBFFF6', muted: '#B1D1C5', green: '#43DAB5', paper: '#081D19', surface: '#10372E', line: '#609D88', secondary: '#1B5140', onGreen: '#06352B', error: '#FF9CB8', focus: '#FFCB61' },
 };
 
 function styles(colors: typeof palettes.light) {

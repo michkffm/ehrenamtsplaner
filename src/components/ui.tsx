@@ -1,5 +1,5 @@
 import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { useState, type ComponentPropsWithRef } from 'react';
+import { useState, type ComponentPropsWithRef, type ReactNode } from 'react';
 import { useUI } from '../lib/preferences';
 
 export function Button({ label, onPress, buttonRef, disabled = false, secondary = false, selected = false }:
@@ -15,17 +15,18 @@ export function Button({ label, onPress, buttonRef, disabled = false, secondary 
       opacity: disabled ? 0.5 : pressed ? 0.75 : 1,
     })}><Text style={{ fontSize: 15, fontWeight: '600', color: secondary && !selected ? colors.ink : colors.onGreen }}>{label}</Text></Pressable>;
 }
-export function Field({ label, inputRef, style, onFocus, onBlur, ...props }: TextInputProps & { label: string; inputRef?: ComponentPropsWithRef<typeof TextInput>['ref'] }) {
+export function Field({ label, inputRef, trailingAction, style, onFocus, onBlur, ...props }: TextInputProps & { label: string; trailingAction?: ReactNode; inputRef?: ComponentPropsWithRef<typeof TextInput>['ref'] }) {
   const { colors } = useUI();
   const [focused, setFocused] = useState(false);
   return <View style={{ gap: 7 }}><Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{label}</Text>
-    <TextInput {...props} ref={inputRef} accessibilityLabel={label} placeholderTextColor={colors.muted}
+    <View style={{ position: 'relative' }}><TextInput {...props} ref={inputRef} accessibilityLabel={label} placeholderTextColor={colors.muted}
       onFocus={(event) => { setFocused(true); onFocus?.(event); }}
       onBlur={(event) => { setFocused(false); onBlur?.(event); }} style={[{
       borderWidth: 2, borderColor: focused ? colors.green : colors.line, borderRadius: 10, padding: 12, minHeight: 48,
       fontSize: 16, color: colors.ink, backgroundColor: colors.surface,
+      ...(trailingAction ? { paddingRight: 60 } : {}),
       ...(props.multiline ? { minHeight: 100, textAlignVertical: 'top' as const } : {}),
-    }, style]} /></View>;
+    }, style]} />{trailingAction ? <View style={{ position: 'absolute', right: 4, top: 0, bottom: 0, justifyContent: 'center' }}>{trailingAction}</View> : null}</View></View>;
 }
 export function Notice({ message, error = false }: { message: string; error?: boolean }) {
   const { ui } = useUI();

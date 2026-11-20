@@ -15,6 +15,7 @@ export default function Home() {
   useEffect(() => {
     if (!supabase) return;
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    void supabase.auth.getSession().then(({ data: current }) => setSession(current.session));
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') supabase?.auth.startAutoRefresh(); else supabase?.auth.stopAutoRefresh();
     });

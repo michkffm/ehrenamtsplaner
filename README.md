@@ -5,6 +5,7 @@ Gemeinsame Aufgaben für Vereine und ehrenamtliche Teams. Eine Expo-Anwendung mi
 ## Erste Version
 
 - Registrierung per E-Mail und Passwort, E-Mail-Bestätigung und Anmeldung über Supabase
+- Google-Anmeldung mit offiziellem farbigem Google-Logo, heller/dunkler Schaltfläche und PKCE-S256; Passwortfelder mit ein-/ausblendbarer Eingabe
 - Vereinsbereiche erstellen und per vertraulichem Einladungscode beitreten
 - Aufgaben mit Beschreibung und optionalem Termin erstellen und bearbeiten
 - Aufgaben übernehmen, freigeben, erledigen und wieder öffnen
@@ -13,7 +14,7 @@ Gemeinsame Aufgaben für Vereine und ehrenamtliche Teams. Eine Expo-Anwendung mi
 - Pro Aufgabe eine wählbare Farbe (Standard, Grün, Blau, Gelb, Rot, Violett), mit zusätzlicher Textbeschriftung
 - Zuständige Personen aus echten Vereinsmitgliedern; nur die Vereinsleitung kann anderen Personen Aufgaben zuweisen. Eigene Anzeigenamen sind für Mitglieder desselben Vereins sichtbar, E-Mail-Adressen werden dabei nicht offengelegt.
 - Fortschritt von 0 bis 100 Prozent, Anfangen, Pausieren und Beenden. 100 Prozent oder Beenden schließt die Aufgabe ab. Pausieren erhält den Fortschritt; Freigeben, Wiederöffnen und Neuzuweisen setzen ihn zurück.
-- Kompakte DE/EN-Auswahl und Hell/Dunkel-Umschalter in der Kopfzeile. Der Umschalter zeigt den jeweils anderen Modus an. Die Oberfläche einschließlich Dialogen und Fehlermeldungen verwendet eine violette Farbpalette; ohne eigene Auswahl folgt sie zunächst dem Systemmodus. Die Auswahl bleibt auf diesem Gerät nach einem Neustart erhalten (Browser: lokaler Browserspeicher; Android/iOS: App-Datei). Beim Löschen der Website- oder App-Daten wird sie zurückgesetzt. Speicherfehler werden angezeigt; Aufgabentexte werden nicht automatisch übersetzt.
+- Kompakte DE/EN-Auswahl und Hell/Dunkel-Umschalter in der Kopfzeile. Der Umschalter zeigt den jeweils anderen Modus an. Die Oberfläche einschließlich Dialogen und Fehlermeldungen verwendet eine Calypso-grüne Farbpalette mit Türkisanteil; ohne eigene Auswahl folgt sie zunächst dem Systemmodus. Die Auswahl bleibt auf diesem Gerät nach einem Neustart erhalten (Browser: lokaler Browserspeicher; Android/iOS: App-Datei). Beim Löschen der Website- oder App-Daten wird sie zurückgesetzt. Speicherfehler werden angezeigt; Aufgabentexte werden nicht automatisch übersetzt.
 - Anhänge pro Aufgabe: JPG, PNG, WebP, HEIC/HEIF und PDF bis 10 MB pro Datei. Vereinsmitglieder können Dateien hinzufügen und öffnen. Dateiname und Dateigröße werden angezeigt; Dateien liegen in einem privaten Supabase-Storage-Bucket.
 - Filter nach Bearbeitungsstand und manuelles Aktualisieren gemeinsamer Daten
 - Suche in Titel und Beschreibung, kombinierbar mit Status und „Meine Aufgaben“ (selbst übernommene Aufgaben)
@@ -52,6 +53,18 @@ Für Android oder iOS: `npm start`, anschließend die zur Expo-Version passende 
 `EXPO_PUBLIC_*` ist im ausgelieferten Client lesbar. Hier ausschließlich den öffentlichen Publishable Key verwenden, **niemals** einen Secret Key, Service-Role-Key oder ein Datenbankpasswort. Die Datenbankregeln schützen Vereinsdaten. Einladungscodes nur an gewünschte Mitglieder weitergeben; sie erlauben den Beitritt zum jeweiligen Verein.
 
 Passwörter werden ausschließlich von Supabase Auth verwaltet. Sitzungen bleiben in dieser Version im Arbeitsspeicher; nach Neuladen oder Neustart ist eine erneute Anmeldung nötig. Keine lokale Ablage von Zugangsdaten. Die öffentliche Registrierung und deren Missbrauchsschutz werden vor einem öffentlichen Betrieb im Supabase-Projekt konfiguriert.
+
+### Google-Anmeldung
+
+Google Cloud benötigt einen OAuth-Client vom Typ Webanwendung mit der Supabase-Callback-Adresse `https://<projekt>.supabase.co/auth/v1/callback`. Client-ID und Clientschlüssel werden ausschließlich im Supabase-Dashboard unter Authentication → Sign In / Providers → Google hinterlegt; dort Google aktivieren. Der geheime Clientschlüssel gehört niemals in die App, `.env.local` oder Git. Im Google-Testmodus nur freigegebene Testkonten verwenden; Apple ist noch nicht eingerichtet.
+
+Unter Authentication → URL Configuration sind für die lokale Entwicklung exakt `http://localhost:8081/auth/callback` und für installierte Android-/iOS-Builds `ehrenamtsplaner://auth/callback` erlaubt. Für eine spätere Webbereitstellung deren genaue HTTPS-Adresse mit `/auth/callback` ergänzen. Keine pauschalen Wildcards verwenden.
+
+`expo-web-browser` öffnet den Anmeldedialog. `expo-crypto` erzeugt einen kryptografischen Zufallswert und den SHA-256-Prüfwert für PKCE. Der Prüfschlüssel bleibt ausschließlich im Arbeitsspeicher. Der Code wird über den Supabase-Auth-Endpunkt gegen Sitzungstokens getauscht und mit `setSession` übernommen. Das vermeidet den nativen Rückfall von auth-js auf PKCE ohne SHA-256, wenn WebCrypto fehlt. Der Browserdialog nutzt vorübergehend lokalen Speicher für seine Fensterzuordnung und den kurzlebigen Rückkehrcode; Zugangstokens werden dort nicht gespeichert. Nach Abbruch ist ein neuer Versuch möglich. Nach App-Neustart oder Neuladen während der Anmeldung muss diese neu begonnen werden.
+
+Web: `npm run web`, dann „Mit Google anmelden“. Android/iOS: eine Entwicklungsversion mit dem registrierten App-Schema erstellen; Expo Go unterstützt diesen Rückkehrweg nicht und zeigt stattdessen einen Hinweis. Die E-Mail-Anmeldung bleibt verfügbar. Native Geräte müssen separat geprüft werden. Die Google-Grafik stammt aus den [offiziellen Branding-Vorgaben](https://developers.google.com/identity/branding-guidelines).
+
+Prüfstand 20.11.2026: Google-Anbieter und beide Rückkehradressen in Supabase aktiviert; Weiterleitung aus der App bis zur echten Google-Anmeldeseite, Abbruch und erneute Bedienbarkeit sowie deutsche/englische und helle/dunkle Darstellung im Browser geprüft. Typprüfung, Lint, 23 Tests und Web-/Android-/iOS-Codeexport bestehen. Ein vollständiger Login mit Google-Kontozustimmung und echte Gerätetests stehen noch aus.
 
 Der Supabase-Standard-Mailversand ist nur für Tests mit den E-Mail-Adressen der Organisationsmitglieder vorgesehen. Für Registrierungen weiterer Ehrenamtlicher muss ein eigener SMTP-Versand eingerichtet werden; die E-Mail-Bestätigung bleibt aktiviert. Siehe [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp). Echte Registrierung, vereinsübergreifende Abläufe und Datei-Uploads sind nach der Einrichtung noch gemeinsam zu prüfen.
 
