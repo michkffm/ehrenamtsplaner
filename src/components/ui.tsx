@@ -2,18 +2,21 @@ import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-nat
 import { useState, type ComponentPropsWithRef, type ReactNode } from 'react';
 import { useUI } from '../lib/preferences';
 
-export function Button({ label, onPress, buttonRef, disabled = false, secondary = false, selected = false }:
-  { label: string; onPress: () => void; buttonRef?: ComponentPropsWithRef<typeof Pressable>['ref']; disabled?: boolean; secondary?: boolean; selected?: boolean }) {
+export function Button({ label, accessibilityLabel, swatchColor, onPress, buttonRef, disabled = false, secondary = false, selected = false }:
+  { label: string; accessibilityLabel?: string; swatchColor?: string; onPress: () => void; buttonRef?: ComponentPropsWithRef<typeof Pressable>['ref']; disabled?: boolean; secondary?: boolean; selected?: boolean }) {
   const { colors } = useUI();
   const [focused, setFocused] = useState(false);
-  return <Pressable ref={buttonRef} accessibilityRole="button" accessibilityState={{ disabled, selected }}
+  return <Pressable ref={buttonRef} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled, selected }}
     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
     disabled={disabled} onPress={onPress} style={({ pressed }) => ({
       minHeight: 48, maxWidth: '100%', flexShrink: 1, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
       borderWidth: 2, borderColor: focused ? colors.focus : 'transparent',
       backgroundColor: secondary && !selected ? colors.secondary : colors.green,
       opacity: disabled ? 0.5 : pressed ? 0.75 : 1,
-    })}><Text style={{ fontSize: 15, fontWeight: '600', color: secondary && !selected ? colors.ink : colors.onGreen }}>{label}</Text></Pressable>;
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+    })}>{swatchColor ? <View accessible={false} style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: swatchColor,
+      borderWidth: 1, borderColor: selected ? colors.onGreen : colors.ink }} /> : null}
+      <Text style={{ fontSize: 15, fontWeight: '600', flexShrink: 1, color: secondary && !selected ? colors.ink : colors.onGreen }}>{label}</Text></Pressable>;
 }
 export function Field({ label, inputRef, trailingAction, style, onFocus, onBlur, ...props }: TextInputProps & { label: string; trailingAction?: ReactNode; inputRef?: ComponentPropsWithRef<typeof TextInput>['ref'] }) {
   const { colors } = useUI();

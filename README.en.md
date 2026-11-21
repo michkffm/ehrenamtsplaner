@@ -30,7 +30,7 @@ The web version is published. Android and iOS code can be exported from the same
 | Area | Capabilities |
 | --- | --- |
 | Accounts & organisations | Google or email/password sign-in, email confirmation, display names, private organisation spaces and confidential invitation codes |
-| Tasks | Title, description, due date, priority and a task colour chosen from a fixed palette |
+| Tasks | Title, description, due date with calendar or manual entry, priority and visible colour swatches |
 | Kanban & list | Open, Assigned, In progress and Done; button-based status changes |
 | Ownership | Take and release tasks; organisation owners can assign members |
 | Progress | 0–100 percent, start, pause, finish and reopen |
@@ -132,7 +132,7 @@ npm run build:web
 
 Additional checks: `npx expo export --platform web --platform ios --platform android`, `npx expo-doctor` and `npm audit`.
 
-**Verified baseline:** 23 tests, type checking, lint and web/Android/iOS code exports passed. Tests cover organisation boundaries, permissions, progress, version conflicts, attachments, translations and Google's code exchange. PGlite tests use synthetic authentication contexts; they do not replace real Supabase multi-account or device tests.
+**Verified baseline:** 27 tests, type checking, lint and web/Android/iOS code exports passed. Tests cover organisation boundaries, permissions, progress, version conflicts, attachments, translations and Google's code exchange. PGlite tests use synthetic authentication contexts; they do not replace real Supabase multi-account or device tests.
 
 Google sign-in was confirmed in Chrome both locally and at `https://ehrenamtsplaner.vercel.app`, through the organisation overview (21 November 2026). The Vercel production build succeeded; the homepage and direct callback return HTTP 200.
 

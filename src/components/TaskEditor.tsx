@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Field, Notice } from './ui';
+import { DateField } from './DateField';
+import { taskColorValue } from '../lib/taskColors';
 import { useUI } from '../lib/preferences';
 import { validateDraft, taskPriorities, taskColors, type Task, type TaskDraft, type TaskPriority, type TaskColor } from '../lib/models';
 
 export function TaskEditor({ task, busy, serverError, onSave, onCancel }: {
   task?: Task; busy: boolean; serverError: string; onSave: (draft: TaskDraft) => Promise<void>; onCancel: () => void;
 }) {
-  const { ui, t, language } = useUI();
+  const { ui, t, language, colors, dark } = useUI();
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'normal');
   const [color, setColor] = useState<TaskColor>(task?.color ?? 'none');
   const [title, setTitle] = useState(task?.title ?? '');
@@ -56,11 +58,11 @@ export function TaskEditor({ task, busy, serverError, onSave, onCancel }: {
     <Text accessibilityRole="header" style={ui.heading}>{task ? t('editTask') : t('editorTitle')}</Text>
     <Field inputRef={titleRef} label={t('title')} value={title} onChangeText={setTitle} maxLength={120} editable={!busy} />
     <Field label={t('description')} value={description} onChangeText={setDescription} multiline maxLength={2000} editable={!busy} />
-    <Field label={t('dueField')} value={due} onChangeText={setDue} autoCapitalize="none" maxLength={10} editable={!busy} />
+    <DateField value={due} onChange={setDue} disabled={busy} />
     <Text style={ui.body}>{t('priority')}</Text>
     <View style={ui.row}>{taskPriorities.map((value) => <Button key={value} label={t(value)} secondary selected={priority === value} disabled={busy} onPress={() => setPriority(value)} />)}</View>
     <Text style={ui.body}>{t('color')}</Text>
-    <View style={ui.row}>{taskColors.map((value) => <Button key={value} label={t(value)} secondary selected={color === value} disabled={busy} onPress={() => setColor(value)} />)}</View>
+    <View style={ui.row}>{taskColors.map((value) => <Button key={value} label={t(value)} swatchColor={taskColorValue(value, dark, colors.line)} secondary selected={color === value} disabled={busy} onPress={() => setColor(value)} />)}</View>
     <Notice message={error || serverError} error />
     <View style={ui.row}><Button label={busy ? t('saving') : t('saveTask')} disabled={busy} onPress={() => void submit()} />
       <Button label={t('cancel')} secondary disabled={busy} onPress={requestClose} /></View>

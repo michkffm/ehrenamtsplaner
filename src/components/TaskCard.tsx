@@ -4,6 +4,7 @@ import { useUI } from '../lib/preferences';
 import { validateProgress, type Member, type Task } from '../lib/models';
 import type { TaskAction } from '../lib/taskActions';
 import { taskDeadline } from '../lib/taskOverview';
+import { taskColorValue } from '../lib/taskColors';
 import { Button, Field, Notice } from './ui';
 import { TaskAttachments } from './TaskAttachments';
 
@@ -20,18 +21,20 @@ export function TaskCard({ task, members, userId, ownerId, today, busy, onAction
   const [progress, setProgress] = useState(String(task.progress));
   const [invalidProgress, setInvalidProgress] = useState(false);
   const deadline = taskDeadline(task, today, language);
-  const accents = dark ? { none: colors.line, green: '#80D9AA', blue: '#83BFFF', yellow: '#F3D36B', red: '#FFADA3', purple: '#CFADFF' }
-    : { none: colors.line, green: '#236A45', blue: '#2456A3', yellow: '#956B08', red: '#A83232', purple: '#7544A0' };
+  const accent = taskColorValue(task.color, dark, colors.line);
   const member = members.find((m) => m.user_id === task.assigned_to);
   const assignee = member?.display_name || t('unnamed', { id: task.assigned_to?.slice(0, 8) ?? '' });
   const canManage = task.assigned_to === userId || ownerId === userId;
   const active = task.status === 'claimed' || task.status === 'in_progress';
 
-  return <View style={[ui.card, { borderLeftWidth: 6, borderLeftColor: accents[task.color], minWidth: 0 }]}>
+  return <View style={[ui.card, { borderLeftWidth: 6, borderLeftColor: accent, minWidth: 0 }]}>
     <Text style={ui.eyebrow}>{t(task.status)}{task.assigned_to === userId ? ` · ${t('yourTask')}` : ''}</Text>
     <Text style={ui.heading}>{task.title}</Text>
     <Text style={[ui.body, { fontWeight: '700' }]}>{t('priority')}: {t(task.priority)}</Text>
-    {task.color !== 'none' ? <Text style={ui.body}>{t('color')}: {t(task.color)}</Text> : null}
+    {task.color !== 'none' ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View accessible={false} style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: accent }} />
+      <Text style={ui.body}>{t('color')}: {t(task.color)}</Text>
+    </View> : null}
     {task.description ? <Text style={ui.body}>{task.description}</Text> : null}
     <Text style={ui.body}>{task.assigned_to ? t('assigned', { name: assignee }) : t('unassigned')}</Text>
     <Text style={[ui.body, deadline.overdue ? { color: colors.error, fontWeight: '700' } : undefined]}>{deadline.text}</Text>

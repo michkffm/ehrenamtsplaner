@@ -30,7 +30,7 @@ Die Webversion ist veröffentlicht. Android- und iOS-Code lassen sich aus demsel
 | Bereich | Möglichkeiten |
 | --- | --- |
 | Konten & Vereine | Anmeldung mit Google oder E-Mail/Passwort, E-Mail-Bestätigung, eigene Anzeigenamen, Vereinsbereiche und Beitritt per vertraulichem Einladungscode |
-| Aufgaben | Titel, Beschreibung, Fälligkeit, Wichtigkeit und frei wählbare Aufgabenfarbe aus einer festen Palette |
+| Aufgaben | Titel, Beschreibung, Fälligkeit mit Kalenderauswahl oder manueller Eingabe, Wichtigkeit und sichtbare Farbauswahl |
 | Kanban & Liste | Offen, Geplant, In Arbeit und Erledigt; Statuswechsel per Schaltfläche |
 | Zuständigkeit | Aufgaben selbst übernehmen und freigeben; die Vereinsleitung kann Mitglieder zuweisen |
 | Fortschritt | 0–100 Prozent, anfangen, pausieren, beenden und wieder öffnen |
@@ -132,7 +132,7 @@ npm run build:web
 
 Zusätzlich: `npx expo export --platform web --platform ios --platform android`, `npx expo-doctor` und `npm audit`.
 
-**Bestätigter Stand:** 23 Tests, Typprüfung, Lint und Web-/Android-/iOS-Codeexport bestanden. Die Tests prüfen unter anderem Vereinsgrenzen, Berechtigungen, Fortschritt, Versionskonflikte, Anhänge, Übersetzungen und den Google-Codeaustausch. PGlite-Tests verwenden synthetische Authentifizierungskontexte; sie ersetzen keine echten Supabase-Mehrkonten- und Gerätetests.
+**Bestätigter Stand:** 27 Tests, Typprüfung, Lint und Web-/Android-/iOS-Codeexport bestanden. Die Tests prüfen unter anderem Vereinsgrenzen, Berechtigungen, Fortschritt, Versionskonflikte, Anhänge, Übersetzungen und den Google-Codeaustausch. PGlite-Tests verwenden synthetische Authentifizierungskontexte; sie ersetzen keine echten Supabase-Mehrkonten- und Gerätetests.
 
 Die Google-Anmeldung wurde in Chrome sowohl lokal als auch unter `https://ehrenamtsplaner.vercel.app` bis zur Vereinsübersicht bestätigt (21.11.2026). Der Produktionsbuild auf Vercel ist erfolgreich; Startseite und direkter Callback liefern HTTP 200.
 
