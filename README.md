@@ -40,6 +40,14 @@ npm run web
 
 Für Android oder iOS: `npm start`, anschließend die zur Expo-Version passende Expo-Go-App verwenden. Ein Simulator benötigt Android Studio beziehungsweise Xcode. Native Geräte und Browser jeweils separat testen.
 
+## Webhosting auf Vercel
+
+Die Hosting-Konfiguration liegt in `vercel.json`: Installation mit `npm ci`, Web-Build mit `npm run build:web`, Ausgabeordner `dist`. Die Weiterleitung auf die App-Einstiegsseite ermöglicht auch den direkten Aufruf von `/auth/callback`.
+
+Das private GitHub-Repository verbinden und diese beiden öffentlichen Konfigurationswerte als Vercel-Umgebungsvariablen für Production eintragen: `EXPO_PUBLIC_SUPABASE_URL` und `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Anschließend neu bauen. Keine geheimen Supabase- oder Google-Schlüssel an Vercel übertragen. Preview-Deployments erst nach bewusster Auswahl ihrer Datenbankkonfiguration nutzen.
+
+Nach Erhalt der dauerhaften HTTPS-Adresse in Supabase die Site URL auf diese Adresse setzen und exakt `https://<webadresse>/auth/callback` als weitere Redirect URL erlauben; lokale und native Rückkehradressen können bestehen bleiben. Die Google-Cloud-Weiterleitung bleibt die Supabase-Callback-Adresse. Vor Freigabe Startseite, direkten Callback-Aufruf, Google-Anmeldung und Vereinsübersicht unter der öffentlichen Adresse prüfen. Das Hosting der Webversion installiert oder veröffentlicht noch keine Android-/iOS-App.
+
 ## Supabase verbinden
 
 1. Für neue Installationen ein Supabase-Projekt in einer geeigneten Region erstellen. Der Entwicklungsstand vom 20.11.2026 verwendet das Projekt `ehrenamtsplaner` in Frankfurt im Free-Tarif. Die fünf unten genannten Migrationen sind dort ausgeführt und in `supabase_migrations.schema_migrations` erfasst; nicht erneut ausführen. Die lokale Verbindung steht in der von Git ignorierten `.env.local`.
