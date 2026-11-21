@@ -27,7 +27,7 @@ export function TaskCard({ task, members, userId, ownerId, today, busy, onAction
   const canManage = task.assigned_to === userId || ownerId === userId;
   const active = task.status === 'claimed' || task.status === 'in_progress';
 
-  return <View style={[ui.card, { borderWidth: task.color === 'none' ? 1 : 3, borderColor: accent, minWidth: 0 }]}>
+  return <View style={[ui.card, { borderWidth: task.color === 'none' ? 1 : 5, borderColor: accent, minWidth: 0 }]}>
     <Text style={ui.eyebrow}>{t(task.status)}{task.assigned_to === userId ? ` · ${t('yourTask')}` : ''}</Text>
     <Text style={ui.heading}>{task.title}</Text>
     <Text style={[ui.body, { fontWeight: '700' }]}>{t('priority')}: {t(task.priority)}</Text>
